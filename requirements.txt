@@ -1,9 +1,14 @@
 streamlit
 langchain
+langchain-openai
 langchain-google-genai
 langchain-community
 langchain-classic
 langchain-core
+langchain-huggingface
 chromadb
 pypdf
 python-dotenv
+sentence-transformers
+duckduckgo-search
+ddgs
