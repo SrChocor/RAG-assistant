@@ -11,4 +11,8 @@ pypdf
 python-dotenv
 sentence-transformers
 duckduckgo-search
+<<<<<<< HEAD
 ddgs
+=======
+ddgs
+>>>>>>> 4819c7a2948e6f4b488f4b984c943aa81d6e3f94

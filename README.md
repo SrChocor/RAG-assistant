@@ -59,7 +59,7 @@ source venv/bin/activate  # Mac/Linux
 pip install -r requirements.txt
 
 # Create .env file
-echo OPENROUTER_API_KEY=your_key_here > .env 
+echo OPENAI_API_KEY=your_key_here > .env 
 Or if you are into VS you can just create the .env file manually and then enter your API keys.
 
 # Run
