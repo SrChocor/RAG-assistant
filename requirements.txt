@@ -12,3 +12,5 @@ python-dotenv
 sentence-transformers
 duckduckgo-search
 ddgs
+
+ddgs
