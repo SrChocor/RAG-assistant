@@ -17,15 +17,24 @@ import tempfile
 
 load_dotenv()
 
-st.title("RAG Assitant - Personal project")
+st.title("RAG Assistant - Personal project")
 
 #initialize the embedding model
-embeddings = langchain_huggingface.HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-llm = ChatOpenAI(model="stepfun/step-3.5-flash:free", 
-                 openai_api_key=os.getenv("OPENAI_API_KEY"),
-                 openai_api_base="https://openrouter.ai/api/v1",
-                 temperature=0.2,
-                 streaming=False)
+@st.cache_resource
+def initialize_embeddings():
+     with st.spinner("Loading embedding model, please wait..."):
+        return langchain_huggingface.HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+@st.cache_resource
+def get_lm():
+    return ChatOpenAI(model="stepfun/step-3.5-flash:free", 
+                      openai_api_key=os.getenv("OPENAI_API_KEY"),
+                      openai_api_base="https://openrouter.ai/api/v1",
+                      temperature=0.3,
+                      streaming=False)
+
+embeddings = initialize_embeddings()
+llm = get_lm()
 
 #Session state to store the conversation history and the vector store
     
@@ -36,24 +45,30 @@ if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
     
 #To upload a PDF file
-uploaded_file = st.file_uploader("Upload your PDF file please", type=["pdf"], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Upload your PDF file please", type=["pdf"], accept_multiple_files=True)
 
-if uploaded_file:
+if uploaded_files:
     all_chunks = []
     
-    for uploaded_file in uploaded_file:
+    for file in uploaded_files:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
-            f.write(uploaded_file.read())
+            f.write(file.read())
             tmp_path = f.name
 
         loader = PyPDFLoader(tmp_path)
         documents = loader.load()
-
+        os.unlink(tmp_path) 
+        
         splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
         chunks = splitter.split_documents(documents)
         all_chunks.extend(chunks)
 
-    st.session_state.vectorstore = Chroma.from_documents(all_chunks, embeddings)
+    if st.session_state.vectorstore is None:
+        st.session_state.vectorstore = Chroma.from_documents(all_chunks, embeddings)
+    else:
+        st.session_state.vectorstore.add_documents(all_chunks)
+        
+
     st.success(f"PDFs uploaded — {len(all_chunks)} total chunks indexed.")
     
 #To ask questions to the assistant
@@ -100,21 +115,21 @@ if st.session_state.vectorstore:
     
     if question:
         st.session_state.chat_history.append({"role": "user", "content": question})
-        with st.chat_message("User"):
+        with st.chat_message("user"):
             st.write(question)
             
-        window = st.session_state.chat_history[-6:]
+        window = st.session_state.chat_history[-7:-1]
         
-        lanchain_history = []
+        langchain_history = []
         
         for msg in window:
             if msg["role"] == "user":
-                lanchain_history.append(HumanMessage(content=msg["content"]))
+                langchain_history.append(HumanMessage(content=msg["content"]))
             else:
-                lanchain_history.append(AIMessage(content=msg["content"]))
+                langchain_history.append(AIMessage(content=msg["content"]))
         
         with st.spinner("Thinking..."):
-            response = agent_executor.invoke({"input": question, "chat_history": lanchain_history})
+            response = agent_executor.invoke({"input": question, "chat_history": langchain_history})
             answer = response["output"]
         
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
