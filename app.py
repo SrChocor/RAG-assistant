@@ -78,7 +78,7 @@ if st.session_state.vectorstore:
     retriever_tool = langchain_core.tools.create_retriever_tool(
         retriever=st.session_state.vectorstore.as_retriever(search_kwargs={"k": 4}),
         name="pdf_retriever",
-        description="Searches and returns information from the uploaded PDF documents. Use this first for any question. If the answern is not in the PDF, infor that you don't know and you can use the DuckDuckGoSearchRun tool to search the web for the answer."
+        description="Searches and returns information from the uploaded PDF documents. Use this first for any question. If the answer is not in the PDF, inform that you don't know and you can use the DuckDuckGoSearchRun tool to search the web for the answer."
     )
     
     web_search_tool = DuckDuckGoSearchRun(
@@ -93,7 +93,7 @@ if st.session_state.vectorstore:
         ("system", """You are a helpful assistant. You have access to two tools:
                 1. pdf_retriever: searches the user's uploaded PDF documents
                 2. web_search: searches the web for additional information
-                If the anwer is not inthe PDF documents, say the answer is not in the PDF and that you need ton use the web_search tool.
+                If the answer is not in the PDF documents, say the answer is not in the PDF and that you need to use the web_search tool.
                 Always try pdf_retriever first. Only use web_search if the answer is not in the PDFs.
                 If you don't know the answer after both tools, say you don't know."""),
         MessagesPlaceholder(variable_name="chat_history"),
@@ -129,9 +129,13 @@ if st.session_state.vectorstore:
                 langchain_history.append(AIMessage(content=msg["content"]))
         
         with st.spinner("Thinking..."):
-            response = agent_executor.invoke({"input": question, "chat_history": langchain_history})
-            answer = response["output"]
-        
+            
+            try:
+                response = agent_executor.invoke({"input": question, "chat_history": langchain_history})
+                answer = response["output"]
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
         with st.chat_message("assistant"):
             st.markdown(answer)        
